@@ -1,5 +1,7 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { ambientPlayer } from "./audio/AmbientPlayer";
+import { isTauri } from "./storage/types";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import { BottomDock } from "./components/BottomDock";
 import { EdgeReveal } from "./components/EdgeReveal";
@@ -27,6 +29,24 @@ export default function App() {
     const t = setTimeout(() => setShowGreeting(false), GREETING_MS);
     return () => clearTimeout(t);
   }, [hydrateFromDisk, initEntry]);
+
+  // 关窗先落盘：拦截关闭请求，await flush 后再销毁窗口，
+  // 消除 beforeunload 异步 flush 造成的「最后 800ms 输入丢失」风险
+  useEffect(() => {
+    if (!isTauri()) return;
+    const win = getCurrentWindow();
+    const unlisten = win.onCloseRequested(async (e) => {
+      e.preventDefault();
+      try {
+        await flush();
+      } finally {
+        await win.destroy();
+      }
+    });
+    return () => {
+      void unlisten.then((f) => f());
+    };
+  }, [flush]);
 
   useEffect(() => {
     void ambientPlayer.play(ambient);
