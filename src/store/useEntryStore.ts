@@ -34,6 +34,7 @@ export const useEntryStore = create<EntryState>((set, get) => ({
   saving: false,
   lastSavedAt: null,
 
+  // 惰性创建：启动只加载列表，敲下第一个字才真正建立（并落盘）一条笔记
   init: () => {
     if (!initPromise) {
       initPromise = (async () => {
@@ -44,25 +45,18 @@ export const useEntryStore = create<EntryState>((set, get) => ({
         } catch {
           entries = [];
         }
-        const now = Date.now();
-        const note: Note = { id: genId(), createdAtMs: now, updatedAtMs: now, tags: [], content: "" };
-        try {
-          await getBackend().save(note);
-        } catch {
-          /* ignore */
-        }
-        set({
-          entries: sortEntries([note, ...entries]),
-          currentId: note.id,
-          content: "",
-          lastSavedAt: now,
-        });
+        set({ entries: sortEntries(entries), currentId: null, content: "" });
       })();
     }
     return initPromise;
   },
 
   setContent: (content) => {
+    if (get().currentId == null && content.length > 0) {
+      const now = Date.now();
+      const note: Note = { id: genId(), createdAtMs: now, updatedAtMs: now, tags: [], content: "" };
+      set({ currentId: note.id, entries: sortEntries([note, ...get().entries]) });
+    }
     set({ content });
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -80,21 +74,10 @@ export const useEntryStore = create<EntryState>((set, get) => ({
     set({ currentId: id, content: note.content, lastSavedAt: Date.now() });
   },
 
+  // 回到空白草稿态，不写任何文件
   newEntry: async () => {
     await get().flush();
-    const now = Date.now();
-    const note: Note = { id: genId(), createdAtMs: now, updatedAtMs: now, tags: [], content: "" };
-    try {
-      await getBackend().save(note);
-    } catch {
-      /* ignore */
-    }
-    set({
-      entries: sortEntries([note, ...get().entries]),
-      currentId: note.id,
-      content: "",
-      lastSavedAt: now,
-    });
+    set({ currentId: null, content: "", lastSavedAt: null });
   },
 
   deleteEntry: async (id) => {
@@ -107,7 +90,7 @@ export const useEntryStore = create<EntryState>((set, get) => ({
     }
     set({ entries: get().entries.filter((n) => n.id !== id) });
     if (get().currentId === id) {
-      await get().newEntry();
+      set({ currentId: null, content: "", lastSavedAt: null });
     }
   },
 
