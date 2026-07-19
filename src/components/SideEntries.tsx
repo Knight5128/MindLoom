@@ -1,5 +1,3 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, deleteEntry } from "../db/dexie";
 import { useEntryStore } from "../store/useEntryStore";
 
 function fmtDate(ts: number) {
@@ -25,27 +23,21 @@ function preview(content: string) {
 }
 
 export function SideEntries() {
-  const entries = useLiveQuery(
-    () => db.entries.orderBy("updatedAt").reverse().limit(60).toArray(),
-    [],
-    []
-  );
+  const entries = useEntryStore((s) => s.entries);
   const currentId = useEntryStore((s) => s.currentId);
   const loadEntry = useEntryStore((s) => s.loadEntry);
   const newEntry = useEntryStore((s) => s.newEntry);
+  const deleteEntry = useEntryStore((s) => s.deleteEntry);
   const flush = useEntryStore((s) => s.flush);
 
-  const onSelect = async (id: number, content: string) => {
+  const onSelect = async (id: string) => {
     await flush();
-    loadEntry(id, content);
+    loadEntry(id);
   };
 
-  const onDelete = async (e: React.MouseEvent, id: number) => {
+  const onDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     await deleteEntry(id);
-    if (currentId === id) {
-      await newEntry();
-    }
   };
 
   return (
@@ -62,23 +54,21 @@ export function SideEntries() {
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
-        {(entries ?? []).map((e) => {
+        {entries.map((e) => {
           const active = e.id === currentId;
           return (
             <button
               key={e.id}
-              onClick={() => void onSelect(e.id!, e.content)}
+              onClick={() => void onSelect(e.id)}
               className={[
                 "group block w-full px-4 py-3 text-left transition-colors",
-                active
-                  ? "bg-white/6"
-                  : "hover:bg-white/4",
+                active ? "bg-white/6" : "hover:bg-white/4",
               ].join(" ")}
             >
               <div className="mb-1 flex items-center justify-between text-[10px] tracking-wider text-[color:var(--fg-3)]">
-                <span>{fmtDate(e.updatedAt)}</span>
+                <span>{fmtDate(e.updatedAtMs)}</span>
                 <span
-                  onClick={(ev) => void onDelete(ev, e.id!)}
+                  onClick={(ev) => void onDelete(ev, e.id)}
                   className="opacity-0 transition-opacity hover:text-[color:var(--fg-1)] group-hover:opacity-100"
                   role="button"
                   title="删除"
@@ -97,7 +87,7 @@ export function SideEntries() {
             </button>
           );
         })}
-        {(!entries || entries.length === 0) && (
+        {entries.length === 0 && (
           <div className="px-4 py-8 text-center text-xs text-[color:var(--fg-3)]">
             还没有笔记，开始写下今晚的第一行吧。
           </div>

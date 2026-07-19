@@ -1,7 +1,8 @@
 /**
  * 纯渐变：零动画，最低能耗。点击同一按钮可在 4 种灰系色板中循环。
+ * 色板序号随其余 UI 偏好一同持久化到 settings.json。
  */
-import { useEffect, useState } from "react";
+import { useUiStore } from "../../store/useUiStore";
 
 const PALETTES = [
   // 灰青
@@ -14,21 +15,13 @@ const PALETTES = [
   "radial-gradient(120% 80% at 50% 110%, #161a1f 0%, #0a0d11 60%, #050608 100%)",
 ];
 
-const STORAGE_KEY = "mindloom:solid-palette";
-
 export function SolidGradient() {
-  const [idx, setIdx] = useState(() => {
-    const v = Number(localStorage.getItem(STORAGE_KEY));
-    return Number.isFinite(v) && v >= 0 && v < PALETTES.length ? v : 0;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, String(idx));
-  }, [idx]);
+  const idx = useUiStore((s) => s.solidPalette) % PALETTES.length;
+  const setSolidPalette = useUiStore((s) => s.setSolidPalette);
 
   return (
     <div
-      onClick={() => setIdx((i) => (i + 1) % PALETTES.length)}
+      onClick={() => setSolidPalette((idx + 1) % PALETTES.length)}
       title="点击切换色板"
       className="fixed inset-0 cursor-pointer transition-[background] duration-1000"
       style={{ background: PALETTES[idx] }}

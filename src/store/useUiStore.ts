@@ -1,4 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
+import { isTauri } from "../storage/types";
 
 export type BackgroundId =
   | "starry"
@@ -26,42 +28,60 @@ export const AMBIENTS: { id: Exclude<AmbientId, null>; label: string }[] = [
   { id: "bowl", label: "钵音" },
 ];
 
-interface UiState {
+interface Settings {
   background: BackgroundId;
   ambient: AmbientId;
   volume: number; // 0..1
+  solidPalette: number;
+}
+
+interface UiState extends Settings {
   forceUiVisible: boolean; // Esc 强制全显
   setBackground: (id: BackgroundId) => void;
   setAmbient: (id: AmbientId) => void;
   setVolume: (v: number) => void;
+  setSolidPalette: (idx: number) => void;
   toggleForceUi: () => void;
+  hydrateFromDisk: () => Promise<void>;
 }
 
 const STORAGE_KEY = "mindloom:ui:v1";
 
-const loadInitial = (): Pick<
-  UiState,
-  "background" | "ambient" | "volume" | "forceUiVisible"
-> => {
+const DEFAULTS: Settings = { background: "starry", ambient: null, volume: 0.5, solidPalette: 0 };
+
+const BACKGROUND_IDS = BACKGROUNDS.map((b) => b.id);
+const AMBIENT_IDS: AmbientId[] = [...AMBIENTS.map((a) => a.id), null];
+
+function normalize(obj: Partial<Settings> | null | undefined): Settings {
+  return {
+    background: BACKGROUND_IDS.includes(obj?.background as BackgroundId)
+      ? (obj!.background as BackgroundId)
+      : DEFAULTS.background,
+    ambient: AMBIENT_IDS.includes(obj?.ambient as AmbientId)
+      ? (obj!.ambient as AmbientId)
+      : DEFAULTS.ambient,
+    volume:
+      typeof obj?.volume === "number" ? Math.max(0, Math.min(1, obj.volume)) : DEFAULTS.volume,
+    solidPalette:
+      typeof obj?.solidPalette === "number" && obj.solidPalette >= 0
+        ? Math.floor(obj.solidPalette)
+        : DEFAULTS.solidPalette,
+  };
+}
+
+const loadInitial = (): Settings => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      return {
-        background: obj.background ?? "starry",
-        ambient: obj.ambient ?? null,
-        volume: typeof obj.volume === "number" ? obj.volume : 0.5,
-        forceUiVisible: false,
-      };
-    }
+    if (raw) return normalize(JSON.parse(raw));
   } catch {
     /* ignore */
   }
-  return { background: "starry", ambient: null, volume: 0.5, forceUiVisible: false };
+  return DEFAULTS;
 };
 
 export const useUiStore = create<UiState>((set, get) => ({
   ...loadInitial(),
+  forceUiVisible: false,
   setBackground: (id) => {
     set({ background: id });
     persist(get());
@@ -74,16 +94,42 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ volume: Math.max(0, Math.min(1, v)) });
     persist(get());
   },
+  setSolidPalette: (idx) => {
+    set({ solidPalette: idx });
+    persist(get());
+  },
   toggleForceUi: () => set({ forceUiVisible: !get().forceUiVisible }),
+
+  // 正式存储为 appdata 的 settings.json；localStorage 仅作快速首帧 + 浏览器开发降级
+  hydrateFromDisk: async () => {
+    if (!isTauri()) return;
+    try {
+      const raw = await invoke<string | null>("read_settings");
+      if (raw) set(normalize(JSON.parse(raw)));
+    } catch {
+      /* ignore */
+    }
+  },
 }));
 
+let diskTimer: ReturnType<typeof setTimeout> | null = null;
+
 function persist(s: UiState) {
+  const settings: Settings = {
+    background: s.background,
+    ambient: s.ambient,
+    volume: s.volume,
+    solidPalette: s.solidPalette,
+  };
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ background: s.background, ambient: s.ambient, volume: s.volume })
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch {
     /* ignore */
+  }
+  if (isTauri()) {
+    if (diskTimer) clearTimeout(diskTimer);
+    diskTimer = setTimeout(() => {
+      void invoke("write_settings", { json: JSON.stringify(settings, null, 2) }).catch(() => {});
+    }, 400);
   }
 }

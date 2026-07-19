@@ -9,7 +9,7 @@
 - UI 默认完全隐藏，光标移近窗口边缘时浮现（顶部 / 左侧 / 底部）
 - 6 种可切换背景：星空、雨夜、极光、雾气、纯色渐变、4-7-8 呼吸圆环
 - 4 段程序化合成的环境音：雨声、风声、白噪、钵音（无外部资源依赖）
-- 笔记本地优先（IndexedDB，800ms 防抖自动保存），可导出 Markdown / JSON
+- 笔记 100% 本地：以 Markdown 文件存于本机应用数据目录（800ms 防抖自动保存），可导出 Markdown / JSON、从 JSON 备份导入、每日自动本地备份
 - 基于 Tauri 2 + React 19 + TypeScript + Vite，桌面包体约 ~10 MB
 
 ## 环境要求
@@ -51,20 +51,31 @@ src/
 ├─ App.tsx                # 编排：背景层 + 编辑层 + 浮动 UI
 ├─ main.tsx
 ├─ store/                 # Zustand 状态（UI、笔记）
-├─ db/                    # Dexie / IndexedDB
+├─ storage/               # 存储层：文件后端（Tauri）/ Dexie 开发降级 / 迁移与备份
+├─ db/                    # 旧 IndexedDB（仅迁移读取 + 浏览器开发降级）
 ├─ audio/                 # 程序化合成环境音
 ├─ components/
 │  ├─ Editor.tsx          # 居中、无边框、纯文本编辑区
 │  ├─ EdgeReveal.tsx      # 鼠标接近边缘 → 淡入子节点
 │  ├─ TopBar.tsx          # 日期 / 字数 / 窗口控制
 │  ├─ SideEntries.tsx     # 历史笔记侧栏
-│  ├─ BottomDock.tsx      # 背景 / 音效 / 导出
+│  ├─ BottomDock.tsx      # 背景 / 音效 / 数据（导出、导入、位置）
 │  ├─ BackgroundLayer.tsx # 6 个背景的交叉淡入切换
 │  └─ backgrounds/        # 6 种背景实现
-├─ utils/exporter.ts      # Markdown / JSON 导出
+├─ utils/exporter.ts      # Markdown / JSON 导出、JSON 导入、打开数据目录
 └─ styles/theme.css       # 灰暗色板 + 毛玻璃 token
-src-tauri/                # Rust 端
+docs/                     # 本地存储规范等文档
+src-tauri/
+└─ src/storage.rs         # 文件存储命令：笔记 / 设置 / 备份 / 回收站
 ```
+
+## 隐私与数据存储
+
+- **所有笔记 100% 本地，永不上云**：应用不发起任何网络请求，无遥测、无账号体系；生产构建启用严格 CSP，从机制上阻断任何外传通道。
+- 笔记以 **Markdown 文件**（YAML frontmatter）存于本机应用数据目录（Windows：`%APPDATA%\com.mindloom.app\notes\`），UI 偏好存于同目录 `settings.json`；每日自动滚动备份到 `backups\`（保留 7 份）；删除先进 `.trash\` 保留 30 天。
+- 旧版 IndexedDB 数据在首次启动时自动一次性迁移为文件（迁移前自动写 pre-migration 备份）。
+- 底部 Dock「数据」组提供：导出 MD / JSON、从 JSON 备份导入、打开数据文件夹。
+- 完整规范（目录布局、红线约束、生命周期保障）见 [docs/LOCAL_STORAGE_SPEC.md](docs/LOCAL_STORAGE_SPEC.md)。
 
 ## 性能 / 节能
 

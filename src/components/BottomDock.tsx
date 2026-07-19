@@ -1,5 +1,11 @@
 import { AMBIENTS, BACKGROUNDS, useUiStore } from "../store/useUiStore";
-import { exportAllAsJson, exportCurrentAsMarkdown } from "../utils/exporter";
+import {
+  exportAllAsJson,
+  exportCurrentAsMarkdown,
+  importFromJson,
+  openDataDir,
+} from "../utils/exporter";
+import { isTauri } from "../storage/types";
 
 export function BottomDock() {
   const background = useUiStore((s) => s.background);
@@ -54,14 +60,24 @@ export function BottomDock() {
 
         <Divider />
 
-        {/* 导出 */}
-        <Group label="导出">
+        {/* 导出 / 数据 */}
+        <Group label="数据">
           <DockBtn onClick={() => void exportCurrentAsMarkdown()} title="导出当前为 Markdown">
             MD
           </DockBtn>
           <DockBtn onClick={() => void exportAllAsJson()} title="导出全部为 JSON">
             JSON
           </DockBtn>
+          {isTauri() && (
+            <>
+              <DockBtn onClick={() => void importFromJson()} title="从 JSON 备份导入">
+                导入
+              </DockBtn>
+              <DockBtn onClick={() => void openDataDir()} title="打开本地数据文件夹">
+                位置
+              </DockBtn>
+            </>
+          )}
         </Group>
       </div>
     </div>

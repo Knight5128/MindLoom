@@ -16,15 +16,17 @@ export default function App() {
   const ambient = useUiStore((s) => s.ambient);
   const volume = useUiStore((s) => s.volume);
   const toggleForceUi = useUiStore((s) => s.toggleForceUi);
+  const hydrateFromDisk = useUiStore((s) => s.hydrateFromDisk);
   const newEntry = useEntryStore((s) => s.newEntry);
   const flush = useEntryStore((s) => s.flush);
   const [showGreeting, setShowGreeting] = useState(true);
 
   useEffect(() => {
+    void hydrateFromDisk();
     void initEntry();
     const t = setTimeout(() => setShowGreeting(false), GREETING_MS);
     return () => clearTimeout(t);
-  }, [initEntry]);
+  }, [hydrateFromDisk, initEntry]);
 
   useEffect(() => {
     void ambientPlayer.play(ambient);

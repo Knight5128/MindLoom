@@ -13,3 +13,8 @@ dist-ssr
 *.sw?
 
 src-tauri/target
+
+# tsc -b build artifacts
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

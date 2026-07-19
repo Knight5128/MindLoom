@@ -1,31 +1,65 @@
 import { create } from "zustand";
-import { createEntry, updateEntry } from "../db/dexie";
+import { getBackend } from "../storage/backend";
+import { runStartupTasks } from "../storage/startup";
+import { genId, type Note } from "../storage/types";
 
 interface EntryState {
-  currentId: number | null;
+  entries: Note[];
+  currentId: string | null;
   content: string;
   saving: boolean;
   lastSavedAt: number | null;
   init: () => Promise<void>;
   setContent: (content: string) => void;
-  loadEntry: (id: number, content: string) => void;
+  loadEntry: (id: string) => void;
   newEntry: () => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
+  reload: () => Promise<void>;
   flush: () => Promise<void>;
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_MS = 800;
 
+let initPromise: Promise<void> | null = null;
+
+function sortEntries(list: Note[]): Note[] {
+  return [...list].sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+}
+
 export const useEntryStore = create<EntryState>((set, get) => ({
+  entries: [],
   currentId: null,
   content: "",
   saving: false,
   lastSavedAt: null,
 
-  init: async () => {
-    if (get().currentId != null) return;
-    const id = await createEntry("");
-    set({ currentId: id, content: "", lastSavedAt: Date.now() });
+  init: () => {
+    if (!initPromise) {
+      initPromise = (async () => {
+        await runStartupTasks();
+        let entries: Note[] = [];
+        try {
+          entries = await getBackend().list();
+        } catch {
+          entries = [];
+        }
+        const now = Date.now();
+        const note: Note = { id: genId(), createdAtMs: now, updatedAtMs: now, tags: [], content: "" };
+        try {
+          await getBackend().save(note);
+        } catch {
+          /* ignore */
+        }
+        set({
+          entries: sortEntries([note, ...entries]),
+          currentId: note.id,
+          content: "",
+          lastSavedAt: now,
+        });
+      })();
+    }
+    return initPromise;
   },
 
   setContent: (content) => {
@@ -36,27 +70,70 @@ export const useEntryStore = create<EntryState>((set, get) => ({
     }, DEBOUNCE_MS);
   },
 
-  loadEntry: (id, content) => {
+  loadEntry: (id) => {
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
     }
-    set({ currentId: id, content, lastSavedAt: Date.now() });
+    const note = get().entries.find((n) => n.id === id);
+    if (!note) return;
+    set({ currentId: id, content: note.content, lastSavedAt: Date.now() });
   },
 
   newEntry: async () => {
     await get().flush();
-    const id = await createEntry("");
-    set({ currentId: id, content: "", lastSavedAt: Date.now() });
+    const now = Date.now();
+    const note: Note = { id: genId(), createdAtMs: now, updatedAtMs: now, tags: [], content: "" };
+    try {
+      await getBackend().save(note);
+    } catch {
+      /* ignore */
+    }
+    set({
+      entries: sortEntries([note, ...get().entries]),
+      currentId: note.id,
+      content: "",
+      lastSavedAt: now,
+    });
+  },
+
+  deleteEntry: async (id) => {
+    const note = get().entries.find((n) => n.id === id);
+    if (!note) return;
+    try {
+      await getBackend().remove(id, note.createdAtMs);
+    } catch {
+      /* ignore */
+    }
+    set({ entries: get().entries.filter((n) => n.id !== id) });
+    if (get().currentId === id) {
+      await get().newEntry();
+    }
+  },
+
+  reload: async () => {
+    try {
+      const entries = await getBackend().list();
+      set({ entries: sortEntries(entries) });
+    } catch {
+      /* ignore */
+    }
   },
 
   flush: async () => {
-    const { currentId, content } = get();
+    const { currentId, content, entries } = get();
     if (currentId == null) return;
+    const note = entries.find((n) => n.id === currentId);
+    if (!note || note.content === content) return;
+    const updated: Note = { ...note, content, updatedAtMs: Date.now() };
     set({ saving: true });
     try {
-      await updateEntry(currentId, content);
-      set({ saving: false, lastSavedAt: Date.now() });
+      await getBackend().save(updated);
+      set({
+        saving: false,
+        lastSavedAt: Date.now(),
+        entries: sortEntries(get().entries.map((n) => (n.id === updated.id ? updated : n))),
+      });
     } catch {
       set({ saving: false });
     }
