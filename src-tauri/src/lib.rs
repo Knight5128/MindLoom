@@ -3,8 +3,14 @@ mod storage;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Emitter, Manager,
 };
+
+/// 前端 flush 完成后调用，真正退出进程
+#[tauri::command]
+fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +25,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            exit_app,
             storage::list_notes,
             storage::save_note,
             storage::delete_note,
@@ -52,7 +59,17 @@ pub fn run() {
                         }
                     }
                     "quit" => {
-                        app.exit(0);
+                        // 让前端先 flush 未保存内容；2s 内未回调 exit_app 则兜底强退
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("mindloom://quit-requested", ());
+                            let handle = app.clone();
+                            std::thread::spawn(move || {
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                                handle.exit(0);
+                            });
+                        } else {
+                            app.exit(0);
+                        }
                     }
                     _ => {}
                 })

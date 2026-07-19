@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { ambientPlayer } from "./audio/AmbientPlayer";
@@ -30,8 +32,7 @@ export default function App() {
     return () => clearTimeout(t);
   }, [hydrateFromDisk, initEntry]);
 
-  // 关窗先落盘：拦截关闭请求，await flush 后再销毁窗口，
-  // 消除 beforeunload 异步 flush 造成的「最后 800ms 输入丢失」风险
+  // 关闭 = 落盘后隐藏到托盘（应用继续驻留）；真正退出走托盘菜单
   useEffect(() => {
     if (!isTauri()) return;
     const win = getCurrentWindow();
@@ -40,7 +41,22 @@ export default function App() {
       try {
         await flush();
       } finally {
-        await win.destroy();
+        await win.hide();
+      }
+    });
+    return () => {
+      void unlisten.then((f) => f());
+    };
+  }, [flush]);
+
+  // 托盘「退出」：先 flush 再退出进程（Rust 侧另有 2s 兜底强制退出）
+  useEffect(() => {
+    if (!isTauri()) return;
+    const unlisten = listen("mindloom://quit-requested", async () => {
+      try {
+        await flush();
+      } finally {
+        await invoke("exit_app");
       }
     });
     return () => {
