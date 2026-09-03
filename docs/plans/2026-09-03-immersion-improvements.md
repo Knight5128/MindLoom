@@ -173,7 +173,7 @@ This repository has no automated test runner. Every task therefore uses the spec
 2. Add an accessible controlled search box and case-insensitive content filtering with an empty-result state.
 3. Rename the Markdown export API and Dock label/title to state that it exports all notes from today.
 4. Update README for all completed user-visible features.
-5. Add the ten final commit hashes to the specification completion table after feature commits exist; amend only Task 10 so there remains one commit per feature.
-6. Run `npm run build`, `cargo check`, and a browser smoke check; expect successful startup and no console/build errors.
-7. Commit `feat: respect reduced motion, add note search, clarify today markdown export`.
-
+5. Run `npm run build`; expect exit code 0.
+6. Commit `feat: respect reduced motion, add note search, clarify today markdown export`.
+7. Add the ten final feature commit hashes to the specification completion table in a separate documentation-only commit.
+8. Run final `npm run build`, `cargo check`, and a browser smoke check; expect successful startup and no console/build errors.
