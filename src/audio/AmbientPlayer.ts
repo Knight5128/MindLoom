@@ -15,6 +15,8 @@ class AmbientPlayer {
   private currentNodes: AudioNode[] = [];
   private currentId: AmbientId = null;
   private bowlTimer: ReturnType<typeof setInterval> | null = null;
+  private bowlOutput: GainNode | null = null;
+  private bowlSync = false;
   private targetVolume = 0.5;
 
   private ensureCtx(): AudioContext {
@@ -47,6 +49,41 @@ class AmbientPlayer {
     this.master.gain.linearRampToValueAtTime(0.0001, now + Math.max(0, seconds));
   }
 
+  setBowlSync(on: boolean) {
+    if (this.bowlSync === on) return;
+    this.bowlSync = on;
+    if (this.currentId !== "bowl") return;
+    if (on) {
+      this.clearBowlTimer();
+    } else {
+      this.startBowlTimer();
+    }
+  }
+
+  strikeBowl() {
+    if (!this.ctx || !this.bowlOutput || this.currentId !== "bowl") return;
+    const ctx = this.ctx;
+    const t0 = ctx.currentTime;
+    const partials = [
+      { f: 220, a: 0.5, d: 6 },
+      { f: 330, a: 0.3, d: 4.5 },
+      { f: 660, a: 0.15, d: 3 },
+      { f: 880, a: 0.08, d: 2 },
+    ];
+    for (const partial of partials) {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.frequency.value = partial.f;
+      oscillator.type = "sine";
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(partial.a, t0 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + partial.d);
+      oscillator.connect(gain).connect(this.bowlOutput);
+      oscillator.start(t0);
+      oscillator.stop(t0 + partial.d + 0.1);
+    }
+  }
+
   async play(id: AmbientId) {
     if (id === this.currentId) return;
     this.ensureCtx();
@@ -74,10 +111,7 @@ class AmbientPlayer {
   }
 
   private cleanupNodes() {
-    if (this.bowlTimer) {
-      clearInterval(this.bowlTimer);
-      this.bowlTimer = null;
-    }
+    this.clearBowlTimer();
     for (const n of this.currentNodes) {
       try {
         (n as AudioScheduledSourceNode).stop?.();
@@ -91,6 +125,19 @@ class AmbientPlayer {
       }
     }
     this.currentNodes = [];
+    this.bowlOutput = null;
+  }
+
+  private clearBowlTimer() {
+    if (!this.bowlTimer) return;
+    clearInterval(this.bowlTimer);
+    this.bowlTimer = null;
+  }
+
+  private startBowlTimer() {
+    this.clearBowlTimer();
+    if (this.currentId !== "bowl" || this.bowlSync) return;
+    this.bowlTimer = setInterval(() => this.strikeBowl(), 14_000);
   }
 
   private startSource(id: Exclude<AmbientId, null>) {
@@ -178,30 +225,9 @@ class AmbientPlayer {
     g.gain.value = 0.5;
     g.connect(out);
     this.currentNodes.push(g);
-    const strike = () => {
-      if (!this.ctx || this.currentId !== "bowl") return;
-      const t0 = ctx.currentTime;
-      const partials = [
-        { f: 220, a: 0.5, d: 6 },
-        { f: 330, a: 0.3, d: 4.5 },
-        { f: 660, a: 0.15, d: 3 },
-        { f: 880, a: 0.08, d: 2 },
-      ];
-      for (const p of partials) {
-        const o = ctx.createOscillator();
-        const og = ctx.createGain();
-        o.frequency.value = p.f;
-        o.type = "sine";
-        og.gain.setValueAtTime(0, t0);
-        og.gain.linearRampToValueAtTime(p.a, t0 + 0.05);
-        og.gain.exponentialRampToValueAtTime(0.0001, t0 + p.d);
-        o.connect(og).connect(g);
-        o.start(t0);
-        o.stop(t0 + p.d + 0.1);
-      }
-    };
-    strike();
-    this.bowlTimer = setInterval(strike, 14000);
+    this.bowlOutput = g;
+    this.strikeBowl();
+    this.startBowlTimer();
   }
 }
 

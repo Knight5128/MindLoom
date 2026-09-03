@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ambientPlayer } from "../../audio/AmbientPlayer";
 
 /**
  * 4-7-8 呼吸：吸气 4s、屏息 7s、呼气 8s。
@@ -12,10 +13,20 @@ const PHASES = [
 
 export function BreathRing() {
   const [phase, setPhase] = useState(0);
+  const [remaining, setRemaining] = useState(PHASES[0].dur / 1000);
 
   useEffect(() => {
+    setRemaining(Math.ceil(PHASES[phase].dur / 1000));
+    if (phase === 0) ambientPlayer.strikeBowl();
     const t = setTimeout(() => setPhase((p) => (p + 1) % PHASES.length), PHASES[phase].dur);
-    return () => clearTimeout(t);
+    const countdown = setInterval(
+      () => setRemaining((seconds) => Math.max(1, seconds - 1)),
+      1000
+    );
+    return () => {
+      clearTimeout(t);
+      clearInterval(countdown);
+    };
   }, [phase]);
 
   const cur = PHASES[phase];
@@ -50,6 +61,9 @@ export function BreathRing() {
         </div>
         <div className="mt-1 text-[18px] tracking-[0.6em] text-[color:var(--fg-1)]">
           {cur.name}
+        </div>
+        <div className="mt-2 text-[10px] tracking-[0.2em] text-[color:var(--fg-3)]">
+          {remaining} 秒
         </div>
       </div>
     </div>

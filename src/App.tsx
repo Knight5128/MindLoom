@@ -40,6 +40,7 @@ async function toggleFullscreen(): Promise<void> {
 export default function App() {
   const initEntry = useEntryStore((s) => s.init);
   const ambient = useUiStore((s) => s.ambient);
+  const background = useUiStore((s) => s.background);
   const theme = useUiStore((s) => s.theme);
   const volume = useUiStore((s) => s.volume);
   const sleepMinutes = useUiStore((s) => s.sleepMinutes);
@@ -132,6 +133,10 @@ export default function App() {
   useEffect(() => {
     ambientPlayer.setVolume(volume);
   }, [volume]);
+
+  useEffect(() => {
+    ambientPlayer.setBowlSync(background === "breath");
+  }, [background]);
 
   useEffect(() => {
     if (!ambient || sleepMinutes === 0 || sleepEndsAt === null) return;
