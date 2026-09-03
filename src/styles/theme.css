@@ -36,6 +36,11 @@ body {
   background: var(--bg-base);
 }
 
+.ml-typing,
+.ml-typing * {
+  cursor: none !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

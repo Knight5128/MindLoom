@@ -27,6 +27,7 @@ export function EdgeReveal({
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<number | null>(null);
   const force = useUiStore((s) => s.forceUiVisible);
+  const typing = useUiStore((s) => s.typing);
 
   useEffect(() => {
     let ticking = false;
@@ -77,7 +78,7 @@ export function EdgeReveal({
     };
   }, [edge, threshold, hideDelay]);
 
-  const visible = force || near || hovering;
+  const visible = force || (!typing && (near || hovering));
 
   return (
     <div

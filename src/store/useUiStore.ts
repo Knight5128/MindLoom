@@ -37,11 +37,13 @@ interface Settings {
 
 interface UiState extends Settings {
   forceUiVisible: boolean; // Esc 强制全显
+  typing: boolean;
   setBackground: (id: BackgroundId) => void;
   setAmbient: (id: AmbientId) => void;
   setVolume: (v: number) => void;
   setSolidPalette: (idx: number) => void;
   toggleForceUi: () => void;
+  setTyping: (typing: boolean) => void;
   hydrateFromDisk: () => Promise<void>;
 }
 
@@ -82,6 +84,7 @@ const loadInitial = (): Settings => {
 export const useUiStore = create<UiState>((set, get) => ({
   ...loadInitial(),
   forceUiVisible: false,
+  typing: false,
   setBackground: (id) => {
     set({ background: id });
     persist(get());
@@ -99,6 +102,7 @@ export const useUiStore = create<UiState>((set, get) => ({
     persist(get());
   },
   toggleForceUi: () => set({ forceUiVisible: !get().forceUiVisible }),
+  setTyping: (typing) => set({ typing }),
 
   // 正式存储为 appdata 的 settings.json；localStorage 仅作快速首帧 + 浏览器开发降级
   hydrateFromDisk: async () => {

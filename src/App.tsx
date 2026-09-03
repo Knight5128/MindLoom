@@ -20,6 +20,8 @@ export default function App() {
   const ambient = useUiStore((s) => s.ambient);
   const volume = useUiStore((s) => s.volume);
   const toggleForceUi = useUiStore((s) => s.toggleForceUi);
+  const setTyping = useUiStore((s) => s.setTyping);
+  const typing = useUiStore((s) => s.typing);
   const hydrateFromDisk = useUiStore((s) => s.hydrateFromDisk);
   const newEntry = useEntryStore((s) => s.newEntry);
   const flush = useEntryStore((s) => s.flush);
@@ -73,6 +75,17 @@ export default function App() {
   }, [volume]);
 
   useEffect(() => {
+    document.body.classList.toggle("ml-typing", typing);
+    return () => document.body.classList.remove("ml-typing");
+  }, [typing]);
+
+  useEffect(() => {
+    const onMouseMove = () => setTyping(false);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMouseMove);
+  }, [setTyping]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         toggleForceUi();
@@ -82,11 +95,13 @@ export default function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void flush();
+      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key !== "F11") {
+        setTyping(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toggleForceUi, newEntry, flush]);
+  }, [toggleForceUi, newEntry, flush, setTyping]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
