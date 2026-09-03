@@ -1,17 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ambientPlayer } from "./audio/AmbientPlayer";
 import { isTauri } from "./storage/types";
 import { BackgroundLayer } from "./components/BackgroundLayer";
 import { BottomDock } from "./components/BottomDock";
 import { EdgeReveal } from "./components/EdgeReveal";
 import { Editor } from "./components/Editor";
+import { NightRitual } from "./components/NightRitual";
 import { SideEntries } from "./components/SideEntries";
 import { TopBar } from "./components/TopBar";
 import { useEntryStore } from "./store/useEntryStore";
 import { useUiStore } from "./store/useUiStore";
+import { streakDays, tonightChars } from "./utils/streak";
 
 const GREETING_MS = 3200;
 
@@ -46,6 +48,38 @@ export default function App() {
   const newEntry = useEntryStore((s) => s.newEntry);
   const flush = useEntryStore((s) => s.flush);
   const [showGreeting, setShowGreeting] = useState(true);
+  const [ritualSummary, setRitualSummary] = useState<{ chars: number; days: number } | null>(null);
+  const ritualActiveRef = useRef(false);
+  const ritualTimerRef = useRef<number | null>(null);
+
+  const runNightRitual = useCallback(async () => {
+    if (ritualActiveRef.current) return;
+    ritualActiveRef.current = true;
+    try {
+      await flush();
+      const entries = useEntryStore.getState().entries;
+      setRitualSummary({ chars: tonightChars(entries), days: streakDays(entries) });
+      ritualTimerRef.current = window.setTimeout(async () => {
+        try {
+          if (isTauri()) await getCurrentWindow().hide();
+        } finally {
+          setRitualSummary(null);
+          ritualActiveRef.current = false;
+          ritualTimerRef.current = null;
+        }
+      }, 4500);
+    } catch {
+      ritualActiveRef.current = false;
+      setRitualSummary(null);
+    }
+  }, [flush]);
+
+  useEffect(
+    () => () => {
+      if (ritualTimerRef.current !== null) window.clearTimeout(ritualTimerRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     void hydrateFromDisk();
@@ -122,6 +156,9 @@ export default function App() {
       } else if (e.key === "F11") {
         e.preventDefault();
         void toggleFullscreen();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        void runNightRitual();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         void newEntry();
@@ -134,7 +171,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toggleForceUi, newEntry, flush, setTyping]);
+  }, [toggleForceUi, newEntry, flush, setTyping, runNightRitual]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -162,7 +199,7 @@ export default function App() {
       {/* 底部：背景 / 音效 / 导出 */}
       <footer className="absolute inset-x-0 bottom-0 z-20">
         <EdgeReveal edge="bottom" threshold={96}>
-          <BottomDock />
+          <BottomDock onGoodnight={() => void runNightRitual()} goodnightActive={ritualSummary !== null} />
         </EdgeReveal>
       </footer>
 
@@ -186,6 +223,8 @@ export default function App() {
           }`}</style>
         </div>
       )}
+
+      {ritualSummary && <NightRitual chars={ritualSummary.chars} days={ritualSummary.days} />}
     </div>
   );
 }

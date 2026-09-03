@@ -7,7 +7,12 @@ import {
 } from "../utils/exporter";
 import { isTauri } from "../storage/types";
 
-export function BottomDock() {
+interface BottomDockProps {
+  onGoodnight: () => void;
+  goodnightActive: boolean;
+}
+
+export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
   const background = useUiStore((s) => s.background);
   const setBackground = useUiStore((s) => s.setBackground);
   const ambient = useUiStore((s) => s.ambient);
@@ -108,6 +113,9 @@ export function BottomDock() {
 
         {/* 导出 / 数据 */}
         <Group label="数据">
+          <DockBtn active={goodnightActive} onClick={onGoodnight} title="收笔并进入晚安仪式">
+            晚安
+          </DockBtn>
           <DockBtn onClick={() => void exportCurrentAsMarkdown()} title="导出当前为 Markdown">
             MD
           </DockBtn>
