@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { AMBIENTS, BACKGROUNDS, useUiStore } from "../store/useUiStore";
 import {
   exportAllAsJson,
@@ -25,6 +26,19 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
   const setFontSize = useUiStore((s) => s.setFontSize);
   const lineWidth = useUiStore((s) => s.lineWidth);
   const setLineWidth = useUiStore((s) => s.setLineWidth);
+  const sleepMinutes = useUiStore((s) => s.sleepMinutes);
+  const sleepEndsAt = useUiStore((s) => s.sleepEndsAt);
+  const setSleepTimer = useUiStore((s) => s.setSleepTimer);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (sleepEndsAt === null) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [sleepEndsAt]);
+
+  const remainingMinutes = sleepEndsAt === null ? 0 : Math.max(1, Math.ceil((sleepEndsAt - now) / 60_000));
 
   return (
     <div className="flex justify-center pb-5">
@@ -67,6 +81,17 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
             className="ml-1 h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/10 accent-[color:var(--accent)]"
             title="音量"
           />
+          {([15, 30] as const).map((minutes) => (
+            <DockBtn
+              key={minutes}
+              active={sleepMinutes === minutes}
+              disabled={ambient === null}
+              onClick={() => setSleepTimer(sleepMinutes === minutes ? 0 : minutes)}
+              title={ambient === null ? "请先播放一种环境音" : `${minutes} 分钟后停止环境音`}
+            >
+              {sleepMinutes === minutes ? `${remainingMinutes}′` : `${minutes}′`}
+            </DockBtn>
+          ))}
         </Group>
 
         <Divider />
@@ -157,20 +182,25 @@ function DockBtn({
   children,
   onClick,
   active,
+  disabled,
   title,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   active?: boolean;
+  disabled?: boolean;
   title?: string;
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
+      disabled={disabled}
       className={[
         "rounded-full px-3 py-1 text-xs transition-colors",
-        active
+        disabled
+          ? "cursor-not-allowed text-[color:var(--fg-faint)]"
+          : active
           ? "bg-white/12 text-[color:var(--fg-1)]"
           : "text-[color:var(--fg-2)] hover:bg-white/6 hover:text-[color:var(--fg-1)]",
       ].join(" ")}

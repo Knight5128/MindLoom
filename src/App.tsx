@@ -42,6 +42,9 @@ export default function App() {
   const ambient = useUiStore((s) => s.ambient);
   const theme = useUiStore((s) => s.theme);
   const volume = useUiStore((s) => s.volume);
+  const sleepMinutes = useUiStore((s) => s.sleepMinutes);
+  const sleepEndsAt = useUiStore((s) => s.sleepEndsAt);
+  const setAmbient = useUiStore((s) => s.setAmbient);
   const toggleForceUi = useUiStore((s) => s.toggleForceUi);
   const setTyping = useUiStore((s) => s.setTyping);
   const typing = useUiStore((s) => s.typing);
@@ -129,6 +132,18 @@ export default function App() {
   useEffect(() => {
     ambientPlayer.setVolume(volume);
   }, [volume]);
+
+  useEffect(() => {
+    if (!ambient || sleepMinutes === 0 || sleepEndsAt === null) return;
+    const fadeDelay = Math.max(0, sleepEndsAt - Date.now() - 60_000);
+    const stopDelay = Math.max(0, sleepEndsAt - Date.now());
+    const fadeTimer = window.setTimeout(() => ambientPlayer.fadeToSilence(60), fadeDelay);
+    const stopTimer = window.setTimeout(() => setAmbient(null), stopDelay);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(stopTimer);
+    };
+  }, [ambient, sleepMinutes, sleepEndsAt, setAmbient]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

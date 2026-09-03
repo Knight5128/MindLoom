@@ -44,6 +44,8 @@ interface Settings {
 interface UiState extends Settings {
   forceUiVisible: boolean; // Esc 强制全显
   typing: boolean;
+  sleepMinutes: 0 | 15 | 30;
+  sleepEndsAt: number | null;
   setBackground: (id: BackgroundId) => void;
   setAmbient: (id: AmbientId) => void;
   setTheme: (theme: ThemeId) => void;
@@ -53,6 +55,7 @@ interface UiState extends Settings {
   setSolidPalette: (idx: number) => void;
   toggleForceUi: () => void;
   setTyping: (typing: boolean) => void;
+  setSleepTimer: (minutes: 0 | 15 | 30) => void;
   hydrateFromDisk: () => Promise<void>;
 }
 
@@ -108,12 +111,14 @@ export const useUiStore = create<UiState>((set, get) => ({
   ...loadInitial(),
   forceUiVisible: false,
   typing: false,
+  sleepMinutes: 0,
+  sleepEndsAt: null,
   setBackground: (id) => {
     set({ background: id });
     persist(get());
   },
   setAmbient: (id) => {
-    set({ ambient: id });
+    set({ ambient: id, sleepMinutes: 0, sleepEndsAt: null });
     persist(get());
   },
   setTheme: (theme) => {
@@ -138,6 +143,11 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
   toggleForceUi: () => set({ forceUiVisible: !get().forceUiVisible }),
   setTyping: (typing) => set({ typing }),
+  setSleepTimer: (minutes) =>
+    set({
+      sleepMinutes: minutes,
+      sleepEndsAt: minutes === 0 ? null : Date.now() + minutes * 60_000,
+    }),
 
   // 正式存储为 appdata 的 settings.json；localStorage 仅作快速首帧 + 浏览器开发降级
   hydrateFromDisk: async () => {

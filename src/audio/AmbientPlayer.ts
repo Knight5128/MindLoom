@@ -39,6 +39,14 @@ class AmbientPlayer {
     }
   }
 
+  fadeToSilence(seconds: number) {
+    if (!this.master || !this.ctx || !this.currentId) return;
+    const now = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setValueAtTime(this.master.gain.value, now);
+    this.master.gain.linearRampToValueAtTime(0.0001, now + Math.max(0, seconds));
+  }
+
   async play(id: AmbientId) {
     if (id === this.currentId) return;
     this.ensureCtx();
