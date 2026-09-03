@@ -42,8 +42,8 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
   const remainingMinutes = sleepEndsAt === null ? 0 : Math.max(1, Math.ceil((sleepEndsAt - now) / 60_000));
 
   return (
-    <div className="flex justify-center pb-5">
-      <div className="glass-panel flex items-center gap-1 rounded-full px-2 py-1.5">
+    <div className="flex justify-center px-4 pb-5">
+      <div className="glass-panel flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-1 rounded-2xl px-2 py-1.5">
         <Group label="场景">
           {PRESETS.map((preset) => (
             <DockBtn
@@ -94,7 +94,7 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
             step={0.01}
             value={volume}
             onChange={(e) => setVolume(Number(e.target.value))}
-            className="ml-1 h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/10 accent-[color:var(--accent)]"
+            className="ml-1 h-1 w-16 shrink-0 cursor-pointer appearance-none rounded-full bg-white/10 accent-[color:var(--accent)]"
             title="音量"
           />
           {([15, 30] as const).map((minutes) => (
@@ -181,8 +181,8 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-1 px-1.5">
-      <span className="mr-1 select-none text-[10px] tracking-widest text-[color:var(--fg-3)]">
+    <div className="flex shrink-0 items-center gap-1 px-1.5">
+      <span className="mr-1 shrink-0 select-none whitespace-nowrap text-[10px] tracking-widest text-[color:var(--fg-3)]">
         {label}
       </span>
       {children}
@@ -213,7 +213,7 @@ function DockBtn({
       title={title}
       disabled={disabled}
       className={[
-        "rounded-full px-3 py-1 text-xs transition-colors",
+        "shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs transition-colors",
         disabled
           ? "cursor-not-allowed text-[color:var(--fg-faint)]"
           : active
