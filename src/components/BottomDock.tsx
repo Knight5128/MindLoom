@@ -16,6 +16,10 @@ export function BottomDock() {
   const setVolume = useUiStore((s) => s.setVolume);
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
+  const fontSize = useUiStore((s) => s.fontSize);
+  const setFontSize = useUiStore((s) => s.setFontSize);
+  const lineWidth = useUiStore((s) => s.lineWidth);
+  const setLineWidth = useUiStore((s) => s.setLineWidth);
 
   return (
     <div className="flex justify-center pb-5">
@@ -58,6 +62,31 @@ export function BottomDock() {
             className="ml-1 h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/10 accent-[color:var(--accent)]"
             title="音量"
           />
+        </Group>
+
+        <Divider />
+
+        <Group label="文字">
+          {(["s", "m", "l"] as const).map((size, index) => (
+            <DockBtn
+              key={size}
+              active={fontSize === size}
+              onClick={() => setFontSize(size)}
+              title={`字号：${["小", "中", "大"][index]}`}
+            >
+              {`${["小", "中", "大"][index]}字`}
+            </DockBtn>
+          ))}
+          {(["narrow", "medium", "wide"] as const).map((width, index) => (
+            <DockBtn
+              key={width}
+              active={lineWidth === width}
+              onClick={() => setLineWidth(width)}
+              title={`行宽：${["窄", "中", "宽"][index]}`}
+            >
+              {`${["窄", "中", "宽"][index]}行`}
+            </DockBtn>
+          ))}
         </Group>
 
         <Divider />

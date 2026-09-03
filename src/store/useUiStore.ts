@@ -12,6 +12,8 @@ export type BackgroundId =
 
 export type AmbientId = "rain" | "wind" | "white" | "bowl" | null;
 export type ThemeId = "mist" | "candle";
+export type FontSizeId = "s" | "m" | "l";
+export type LineWidthId = "narrow" | "medium" | "wide";
 
 export const BACKGROUNDS: { id: BackgroundId; label: string }[] = [
   { id: "starry", label: "星空" },
@@ -33,6 +35,8 @@ interface Settings {
   background: BackgroundId;
   ambient: AmbientId;
   theme: ThemeId;
+  fontSize: FontSizeId;
+  lineWidth: LineWidthId;
   volume: number; // 0..1
   solidPalette: number;
 }
@@ -43,6 +47,8 @@ interface UiState extends Settings {
   setBackground: (id: BackgroundId) => void;
   setAmbient: (id: AmbientId) => void;
   setTheme: (theme: ThemeId) => void;
+  setFontSize: (fontSize: FontSizeId) => void;
+  setLineWidth: (lineWidth: LineWidthId) => void;
   setVolume: (v: number) => void;
   setSolidPalette: (idx: number) => void;
   toggleForceUi: () => void;
@@ -56,6 +62,8 @@ const DEFAULTS: Settings = {
   background: "starry",
   ambient: null,
   theme: "mist",
+  fontSize: "m",
+  lineWidth: "medium",
   volume: 0.5,
   solidPalette: 0,
 };
@@ -72,6 +80,11 @@ function normalize(obj: Partial<Settings> | null | undefined): Settings {
       ? (obj!.ambient as AmbientId)
       : DEFAULTS.ambient,
     theme: obj?.theme === "candle" ? "candle" : DEFAULTS.theme,
+    fontSize: obj?.fontSize === "s" || obj?.fontSize === "l" ? obj.fontSize : DEFAULTS.fontSize,
+    lineWidth:
+      obj?.lineWidth === "narrow" || obj?.lineWidth === "wide"
+        ? obj.lineWidth
+        : DEFAULTS.lineWidth,
     volume:
       typeof obj?.volume === "number" ? Math.max(0, Math.min(1, obj.volume)) : DEFAULTS.volume,
     solidPalette:
@@ -107,6 +120,14 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ theme });
     persist(get());
   },
+  setFontSize: (fontSize) => {
+    set({ fontSize });
+    persist(get());
+  },
+  setLineWidth: (lineWidth) => {
+    set({ lineWidth });
+    persist(get());
+  },
   setVolume: (v) => {
     set({ volume: Math.max(0, Math.min(1, v)) });
     persist(get());
@@ -137,6 +158,8 @@ function persist(s: UiState) {
     background: s.background,
     ambient: s.ambient,
     theme: s.theme,
+    fontSize: s.fontSize,
+    lineWidth: s.lineWidth,
     volume: s.volume,
     solidPalette: s.solidPalette,
   };

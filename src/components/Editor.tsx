@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useEntryStore } from "../store/useEntryStore";
+import { useUiStore } from "../store/useUiStore";
 
 const PLACEHOLDER = "今晚，写下一个字也好。";
+const FONT_SIZES = { s: 16, m: 18, l: 20 } as const;
+const LINE_WIDTHS = { narrow: 560, medium: 640, wide: 760 } as const;
 
 export function Editor() {
   const content = useEntryStore((s) => s.content);
   const setContent = useEntryStore((s) => s.setContent);
   const flush = useEntryStore((s) => s.flush);
+  const fontSize = useUiStore((s) => s.fontSize);
+  const lineWidth = useUiStore((s) => s.lineWidth);
   const ref = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -67,7 +72,10 @@ export function Editor() {
       ref={scrollRef}
       className="pointer-events-none flex h-full w-full items-start justify-center overflow-y-auto px-6 pb-[50vh] pt-[18vh]"
     >
-      <div className="pointer-events-auto w-full max-w-[640px]">
+      <div
+        className="pointer-events-auto w-full"
+        style={{ maxWidth: `${LINE_WIDTHS[lineWidth]}px` }}
+      >
         <textarea
           ref={ref}
           value={content}
@@ -81,9 +89,10 @@ export function Editor() {
           placeholder={PLACEHOLDER}
           spellCheck={false}
           autoFocus
-          className="w-full resize-none bg-transparent text-[18px] leading-[2] tracking-[0.02em] text-[color:var(--fg-1)] placeholder:text-[color:var(--fg-faint)] focus:outline-none"
+          className="w-full resize-none bg-transparent leading-[2] tracking-[0.02em] text-[color:var(--fg-1)] placeholder:text-[color:var(--fg-faint)] focus:outline-none"
           style={{
             fontFamily: "var(--font-serif)",
+            fontSize: `${FONT_SIZES[fontSize]}px`,
             minHeight: "60vh",
             caretColor: "var(--accent)",
           }}

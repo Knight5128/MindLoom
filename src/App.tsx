@@ -15,6 +15,25 @@ import { useUiStore } from "./store/useUiStore";
 
 const GREETING_MS = 3200;
 
+async function isFullscreen(): Promise<boolean> {
+  if (isTauri()) return getCurrentWindow().isFullscreen();
+  return document.fullscreenElement !== null;
+}
+
+async function setFullscreen(fullscreen: boolean): Promise<void> {
+  if (isTauri()) {
+    await getCurrentWindow().setFullscreen(fullscreen);
+  } else if (fullscreen) {
+    await document.documentElement.requestFullscreen();
+  } else if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  }
+}
+
+async function toggleFullscreen(): Promise<void> {
+  await setFullscreen(!(await isFullscreen()));
+}
+
 export default function App() {
   const initEntry = useEntryStore((s) => s.init);
   const ambient = useUiStore((s) => s.ambient);
@@ -93,7 +112,16 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        toggleForceUi();
+        void (async () => {
+          if (await isFullscreen()) {
+            await setFullscreen(false);
+          } else {
+            toggleForceUi();
+          }
+        })();
+      } else if (e.key === "F11") {
+        e.preventDefault();
+        void toggleFullscreen();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
         e.preventDefault();
         void newEntry();
