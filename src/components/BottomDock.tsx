@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AMBIENTS, BACKGROUNDS, PRESETS, useUiStore } from "../store/useUiStore";
 import {
   exportAllAsJson,
-  exportCurrentAsMarkdown,
+  exportTodayAsMarkdown,
   importFromJson,
   openDataDir,
 } from "../utils/exporter";
@@ -157,8 +157,8 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
           <DockBtn active={goodnightActive} onClick={onGoodnight} title="收笔并进入晚安仪式">
             晚安
           </DockBtn>
-          <DockBtn onClick={() => void exportCurrentAsMarkdown()} title="导出当前为 Markdown">
-            MD
+          <DockBtn onClick={() => void exportTodayAsMarkdown()} title="导出今天全部为 Markdown">
+            今日MD
           </DockBtn>
           <DockBtn onClick={() => void exportAllAsJson()} title="导出全部为 JSON">
             JSON

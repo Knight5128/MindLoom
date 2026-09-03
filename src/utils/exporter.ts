@@ -47,7 +47,7 @@ async function saveTextAs(filename: string, contents: string, ext: string, filte
   }
 }
 
-export async function exportCurrentAsMarkdown(): Promise<void> {
+export async function exportTodayAsMarkdown(): Promise<void> {
   await useEntryStore.getState().flush();
   const all = useEntryStore.getState().entries;
   const today = Date.now();

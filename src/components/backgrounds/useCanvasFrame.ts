@@ -23,7 +23,22 @@ export function useCanvasFrame(
     let raf = 0;
     let last = 0;
     let active = !document.hidden && document.hasFocus();
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reducedMotion = motionQuery.matches;
     const interval = 1000 / fps;
+
+    const drawOnce = () => {
+      drawRef.current(ctx, window.innerWidth, window.innerHeight, performance.now());
+    };
+
+    const cancelLoop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    const scheduleLoop = () => {
+      if (!raf && active && !reducedMotion) raf = requestAnimationFrame(loop);
+    };
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -34,35 +49,60 @@ export function useCanvasFrame(
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (reducedMotion) drawOnce();
     };
-    resize();
 
     const loop = (t: number) => {
-      raf = requestAnimationFrame(loop);
-      if (!active) return;
-      if (t - last < interval) return;
-      last = t;
-      drawRef.current(ctx, window.innerWidth, window.innerHeight, t);
+      raf = 0;
+      if (!active || reducedMotion) return;
+      if (t - last >= interval) {
+        last = t;
+        drawRef.current(ctx, window.innerWidth, window.innerHeight, t);
+      }
+      scheduleLoop();
     };
-    raf = requestAnimationFrame(loop);
+
+    resize();
+    scheduleLoop();
 
     const onVis = () => {
       active = !document.hidden && document.hasFocus();
+      if (active) scheduleLoop();
+      else cancelLoop();
     };
-    const onFocus = () => (active = true);
-    const onBlur = () => (active = false);
+    const onFocus = () => {
+      active = true;
+      if (reducedMotion) drawOnce();
+      else scheduleLoop();
+    };
+    const onBlur = () => {
+      active = false;
+      cancelLoop();
+    };
+    const onMotionChange = (event: MediaQueryListEvent) => {
+      reducedMotion = event.matches;
+      last = 0;
+      if (reducedMotion) {
+        cancelLoop();
+        drawOnce();
+      } else {
+        scheduleLoop();
+      }
+    };
 
     window.addEventListener("resize", resize);
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
+    motionQuery.addEventListener("change", onMotionChange);
 
     return () => {
-      cancelAnimationFrame(raf);
+      cancelLoop();
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
+      motionQuery.removeEventListener("change", onMotionChange);
     };
   }, [fps]);
 
