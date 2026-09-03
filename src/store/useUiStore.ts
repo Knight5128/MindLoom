@@ -31,6 +31,20 @@ export const AMBIENTS: { id: Exclude<AmbientId, null>; label: string }[] = [
   { id: "bowl", label: "钵音" },
 ];
 
+export interface ScenePreset {
+  id: "rainy-night" | "starry-night" | "meditation" | "cloud-mist";
+  label: string;
+  background: BackgroundId;
+  ambient: Exclude<AmbientId, null>;
+}
+
+export const PRESETS: ScenePreset[] = [
+  { id: "rainy-night", label: "雨夜", background: "rain", ambient: "rain" },
+  { id: "starry-night", label: "星夜", background: "starry", ambient: "wind" },
+  { id: "meditation", label: "入定", background: "breath", ambient: "bowl" },
+  { id: "cloud-mist", label: "云雾", background: "fog", ambient: "white" },
+];
+
 interface Settings {
   background: BackgroundId;
   ambient: AmbientId;
@@ -56,6 +70,7 @@ interface UiState extends Settings {
   toggleForceUi: () => void;
   setTyping: (typing: boolean) => void;
   setSleepTimer: (minutes: 0 | 15 | 30) => void;
+  applyPreset: (preset: ScenePreset) => void;
   hydrateFromDisk: () => Promise<void>;
 }
 
@@ -148,6 +163,15 @@ export const useUiStore = create<UiState>((set, get) => ({
       sleepMinutes: minutes,
       sleepEndsAt: minutes === 0 ? null : Date.now() + minutes * 60_000,
     }),
+  applyPreset: (preset) => {
+    set({
+      background: preset.background,
+      ambient: preset.ambient,
+      sleepMinutes: 0,
+      sleepEndsAt: null,
+    });
+    persist(get());
+  },
 
   // 正式存储为 appdata 的 settings.json；localStorage 仅作快速首帧 + 浏览器开发降级
   hydrateFromDisk: async () => {

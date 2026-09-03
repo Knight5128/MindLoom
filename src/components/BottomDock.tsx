@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AMBIENTS, BACKGROUNDS, useUiStore } from "../store/useUiStore";
+import { AMBIENTS, BACKGROUNDS, PRESETS, useUiStore } from "../store/useUiStore";
 import {
   exportAllAsJson,
   exportCurrentAsMarkdown,
@@ -30,6 +30,7 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
   const sleepEndsAt = useUiStore((s) => s.sleepEndsAt);
   const setSleepTimer = useUiStore((s) => s.setSleepTimer);
   const [now, setNow] = useState(Date.now());
+  const applyPreset = useUiStore((s) => s.applyPreset);
 
   useEffect(() => {
     if (sleepEndsAt === null) return;
@@ -43,6 +44,21 @@ export function BottomDock({ onGoodnight, goodnightActive }: BottomDockProps) {
   return (
     <div className="flex justify-center pb-5">
       <div className="glass-panel flex items-center gap-1 rounded-full px-2 py-1.5">
+        <Group label="场景">
+          {PRESETS.map((preset) => (
+            <DockBtn
+              key={preset.id}
+              active={background === preset.background && ambient === preset.ambient}
+              onClick={() => applyPreset(preset)}
+              title={`切换到「${preset.label}」场景`}
+            >
+              {preset.label}
+            </DockBtn>
+          ))}
+        </Group>
+
+        <Divider />
+
         {/* 背景切换 */}
         <Group label="背景">
           {BACKGROUNDS.map((b) => (
