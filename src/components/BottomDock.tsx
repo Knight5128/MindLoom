@@ -14,6 +14,8 @@ export function BottomDock() {
   const setAmbient = useUiStore((s) => s.setAmbient);
   const volume = useUiStore((s) => s.volume);
   const setVolume = useUiStore((s) => s.setVolume);
+  const theme = useUiStore((s) => s.theme);
+  const setTheme = useUiStore((s) => s.setTheme);
 
   return (
     <div className="flex justify-center pb-5">
@@ -56,6 +58,21 @@ export function BottomDock() {
             className="ml-1 h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/10 accent-[color:var(--accent)]"
             title="音量"
           />
+        </Group>
+
+        <Divider />
+
+        <Group label="色调">
+          <DockBtn active={theme === "mist"} onClick={() => setTheme("mist")} title="使用冷雾色调">
+            冷雾
+          </DockBtn>
+          <DockBtn
+            active={theme === "candle"}
+            onClick={() => setTheme("candle")}
+            title="使用低蓝光烛光色调"
+          >
+            烛光
+          </DockBtn>
         </Group>
 
         <Divider />

@@ -11,6 +11,7 @@ export type BackgroundId =
   | "breath";
 
 export type AmbientId = "rain" | "wind" | "white" | "bowl" | null;
+export type ThemeId = "mist" | "candle";
 
 export const BACKGROUNDS: { id: BackgroundId; label: string }[] = [
   { id: "starry", label: "星空" },
@@ -31,6 +32,7 @@ export const AMBIENTS: { id: Exclude<AmbientId, null>; label: string }[] = [
 interface Settings {
   background: BackgroundId;
   ambient: AmbientId;
+  theme: ThemeId;
   volume: number; // 0..1
   solidPalette: number;
 }
@@ -40,6 +42,7 @@ interface UiState extends Settings {
   typing: boolean;
   setBackground: (id: BackgroundId) => void;
   setAmbient: (id: AmbientId) => void;
+  setTheme: (theme: ThemeId) => void;
   setVolume: (v: number) => void;
   setSolidPalette: (idx: number) => void;
   toggleForceUi: () => void;
@@ -49,7 +52,13 @@ interface UiState extends Settings {
 
 const STORAGE_KEY = "mindloom:ui:v1";
 
-const DEFAULTS: Settings = { background: "starry", ambient: null, volume: 0.5, solidPalette: 0 };
+const DEFAULTS: Settings = {
+  background: "starry",
+  ambient: null,
+  theme: "mist",
+  volume: 0.5,
+  solidPalette: 0,
+};
 
 const BACKGROUND_IDS = BACKGROUNDS.map((b) => b.id);
 const AMBIENT_IDS: AmbientId[] = [...AMBIENTS.map((a) => a.id), null];
@@ -62,6 +71,7 @@ function normalize(obj: Partial<Settings> | null | undefined): Settings {
     ambient: AMBIENT_IDS.includes(obj?.ambient as AmbientId)
       ? (obj!.ambient as AmbientId)
       : DEFAULTS.ambient,
+    theme: obj?.theme === "candle" ? "candle" : DEFAULTS.theme,
     volume:
       typeof obj?.volume === "number" ? Math.max(0, Math.min(1, obj.volume)) : DEFAULTS.volume,
     solidPalette:
@@ -93,6 +103,10 @@ export const useUiStore = create<UiState>((set, get) => ({
     set({ ambient: id });
     persist(get());
   },
+  setTheme: (theme) => {
+    set({ theme });
+    persist(get());
+  },
   setVolume: (v) => {
     set({ volume: Math.max(0, Math.min(1, v)) });
     persist(get());
@@ -122,6 +136,7 @@ function persist(s: UiState) {
   const settings: Settings = {
     background: s.background,
     ambient: s.ambient,
+    theme: s.theme,
     volume: s.volume,
     solidPalette: s.solidPalette,
   };

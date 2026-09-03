@@ -18,6 +18,7 @@ const GREETING_MS = 3200;
 export default function App() {
   const initEntry = useEntryStore((s) => s.init);
   const ambient = useUiStore((s) => s.ambient);
+  const theme = useUiStore((s) => s.theme);
   const volume = useUiStore((s) => s.volume);
   const toggleForceUi = useUiStore((s) => s.toggleForceUi);
   const setTyping = useUiStore((s) => s.setTyping);
@@ -73,6 +74,10 @@ export default function App() {
   useEffect(() => {
     ambientPlayer.setVolume(volume);
   }, [volume]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     document.body.classList.toggle("ml-typing", typing);

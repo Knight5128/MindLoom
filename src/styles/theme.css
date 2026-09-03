@@ -19,6 +19,20 @@
   --shadow-floating: 0 20px 60px -20px oklch(0 0 0 / 0.6);
 }
 
+:root[data-theme="candle"] {
+  --bg-base: oklch(0.17 0.02 70);
+  --bg-veil: oklch(0.23 0.025 70 / 0.58);
+  --bg-veil-strong: oklch(0.18 0.022 70 / 0.8);
+  --fg-1: oklch(0.92 0.02 85);
+  --fg-2: oklch(0.7 0.025 82);
+  --fg-3: oklch(0.51 0.025 78);
+  --fg-faint: oklch(0.34 0.02 75);
+  --accent: oklch(0.78 0.09 70);
+  --hairline: oklch(0.9 0.035 80 / 0.08);
+  --hairline-strong: oklch(0.9 0.035 80 / 0.15);
+  --shadow-floating: 0 20px 60px -20px oklch(0.08 0.02 55 / 0.72);
+}
+
 html,
 body,
 #root {
@@ -57,7 +71,7 @@ body {
 }
 
 ::selection {
-  background: oklch(0.78 0.04 220 / 0.28);
+  background: color-mix(in oklch, var(--accent) 28%, transparent);
   color: var(--fg-1);
 }
 
