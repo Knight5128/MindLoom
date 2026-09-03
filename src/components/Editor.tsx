@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEntryStore } from "../store/useEntryStore";
 import { useUiStore } from "../store/useUiStore";
+import { pickPlaceholder } from "../utils/prompts";
 
-const PLACEHOLDER = "今晚，写下一个字也好。";
 const FONT_SIZES = { s: 16, m: 18, l: 20 } as const;
 const LINE_WIDTHS = { narrow: 560, medium: 640, wide: 760 } as const;
 
 export function Editor() {
   const content = useEntryStore((s) => s.content);
+  const currentId = useEntryStore((s) => s.currentId);
   const setContent = useEntryStore((s) => s.setContent);
   const flush = useEntryStore((s) => s.flush);
   const fontSize = useUiStore((s) => s.fontSize);
@@ -16,6 +17,11 @@ export function Editor() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
+  const [placeholder, setPlaceholder] = useState(() => pickPlaceholder());
+
+  useEffect(() => {
+    if (currentId === null) setPlaceholder(pickPlaceholder());
+  }, [currentId]);
 
   const centerCaret = useCallback(() => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
@@ -86,7 +92,7 @@ export function Editor() {
           onKeyUp={centerCaret}
           onClick={centerCaret}
           onSelect={centerCaret}
-          placeholder={PLACEHOLDER}
+          placeholder={placeholder}
           spellCheck={false}
           autoFocus
           className="w-full resize-none bg-transparent leading-[2] tracking-[0.02em] text-[color:var(--fg-1)] placeholder:text-[color:var(--fg-faint)] focus:outline-none"

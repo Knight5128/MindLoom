@@ -14,6 +14,7 @@ import { TopBar } from "./components/TopBar";
 import { useEntryStore } from "./store/useEntryStore";
 import { useUiStore } from "./store/useUiStore";
 import { streakDays, tonightChars } from "./utils/streak";
+import { greetingForNow } from "./utils/prompts";
 
 const GREETING_MS = 3200;
 
@@ -48,6 +49,7 @@ export default function App() {
   const newEntry = useEntryStore((s) => s.newEntry);
   const flush = useEntryStore((s) => s.flush);
   const [showGreeting, setShowGreeting] = useState(true);
+  const [greeting] = useState(() => greetingForNow());
   const [ritualSummary, setRitualSummary] = useState<{ chars: number; days: number } | null>(null);
   const ritualActiveRef = useRef(false);
   const ritualTimerRef = useRef<number | null>(null);
@@ -213,7 +215,7 @@ export default function App() {
             className="select-none text-center text-[14px] tracking-[0.5em] text-[color:var(--fg-3)]"
             style={{ animation: "ml-greet 3200ms ease forwards" }}
           >
-            今晚，写下一个字也好。
+            {greeting}
           </div>
           <style>{`@keyframes ml-greet {
             0%   { opacity: 0; transform: translateY(6px); }
